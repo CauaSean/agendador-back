@@ -12,7 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*") // Evita erros de CORS ao testar localmente
+@CrossOrigin(origins = "*")
 public class PatientController {
 
     @Autowired
@@ -40,16 +40,26 @@ public class PatientController {
 
     @PostMapping("/patients")
     public ResponseEntity<?> create(@RequestBody PatientEntity patient) {
-        return patientService.createPatient(patient)
-                .map(savedPatient -> ResponseEntity.status(HttpStatus.CREATED).body(savedPatient))
-                .orElseGet(() -> ResponseEntity.badRequest().body(Map.of("error", "Campos obrigatórios faltando.")));
+        patient.setId(null);
+
+        java.util.Optional<PatientEntity> saved = patientService.createPatient(patient);
+
+        if (saved.isPresent()) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(saved.get());
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("error", "Campos obrigatórios faltando."));
+        }
     }
 
     @PatchMapping("/patients/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        return patientService.updatePatientStatus(id, body)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Paciente não encontrado.")));
+        java.util.Optional<PatientEntity> updated = patientService.updatePatientStatus(id, body);
+
+        if (updated.isPresent()) {
+            return ResponseEntity.ok(updated.get());
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Paciente não encontrado."));
+        }
     }
 
     @DeleteMapping("/patients/{id}")
